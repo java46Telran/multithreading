@@ -2,6 +2,8 @@ package telran.multithreading.games;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Race {
 	private int distance;
@@ -10,6 +12,7 @@ public class Race {
 	private int winner = -1;
 	private List<Runner> resultsTable;
 	private Instant startTime;
+	public final Lock lock = new ReentrantLock(true);
 	
 	public List<Runner> getResultsTable() {
 		return resultsTable;

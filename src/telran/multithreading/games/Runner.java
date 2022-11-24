@@ -26,11 +26,16 @@ public class Runner extends Thread {
 			}
 			System.out.println(runnerId);
 		}
-		
-		synchronized (race) {
+		race.lock.lock(); //critical section beginning
+		try
+		{
+			
 			finishTime = Instant.now();
 			finishRace();
+		} finally {
+			race.lock.unlock(); //critical section ending
 		}
+		
 	}
 	private void finishRace() {
 		race.getResultsTable().add(this);
