@@ -8,6 +8,12 @@ public class Worker extends Thread {
 
 	void f1() {
 		synchronized (resource1) {
+			try {
+				sleep(10);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			synchronized (resource2) {
 				synchronized (resource3) {
 					// any code
@@ -17,8 +23,8 @@ public class Worker extends Thread {
 	}
 
 	void f2() {
-		synchronized (resource1) {
-			synchronized (resource3) {
+		synchronized (resource3) {
+			synchronized (resource1) {
 				// any code
 			}
 		}
