@@ -1,26 +1,50 @@
 package telran.multithreading;
 
+import java.util.concurrent.locks.*;
+
 public class MessageBox {
-private String message;
-public void put(String message) throws InterruptedException {
-	synchronized(this) {
-		while(this.message != null) {
-			this.wait();
+	private String message;
+	private Lock monitor = new ReentrantLock();
+	private Condition producerWaitingCondition = monitor.newCondition();
+	private Condition consumerWaitingCondition = monitor.newCondition();
+
+	public void put(String message) throws InterruptedException {
+		monitor.lock();
+		try {
+			while (this.message != null) {
+				producerWaitingCondition.await();
+			}
+			this.message = message;
+			consumerWaitingCondition.signal();
+		} finally {
+			monitor.unlock();
 		}
-		this.message = message;
-		this.notifyAll();
 	}
-}
-public String get() throws InterruptedException {
-	synchronized (this) {
-		while(message == null) {
-			this.wait();
+
+	public String get() throws InterruptedException {
+		monitor.lock();
+		try {
+			while (message == null) {
+				consumerWaitingCondition.await();
+			}
+			String res = message;
+			message = null;
+			producerWaitingCondition.signal();
+			return res;
+		} finally {
+			monitor.unlock();
 		}
-		String res = message;
-		message = null;
-		this.notifyAll();
-		return res;
+
 	}
+	public String take() {
 	
-}
+		monitor.lock();
+		try {
+			return message; //possible null
+		} finally {
+			monitor.unlock();
+		}
+		
+	}
+
 }
