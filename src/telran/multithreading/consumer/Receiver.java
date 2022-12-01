@@ -1,24 +1,37 @@
 package telran.multithreading.consumer;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import telran.multithreading.MessageBox;
 
 public class Receiver extends Thread {
+	private static AtomicInteger messagesCounter = new AtomicInteger(0);
 	private MessageBox messageBox;
+	private boolean running = true;
 	public Receiver(MessageBox messageBox) {
-		//FIXME - thread should not be a Daemon one
-		setDaemon(true);
+		
 		this.messageBox = messageBox;
 	}
 	@Override
 	public void run() {
-		while(true) {
+		while(running ) {
 			try {
 				String message = messageBox.get();
-				System.out.println(message + getName());
+				messageProcessing(message);
 			} catch (InterruptedException e) {
 				
 			}
 		}
+	}
+	private void messageProcessing(String message) {
+		messagesCounter.incrementAndGet();
+		System.out.println(message + getName());
+	}
+	public static int getMessagesCounter() {
+		return messagesCounter.get();
+	}
+	public void setRunning(boolean running) {
+		this.running = running;
 	}
 	
 }

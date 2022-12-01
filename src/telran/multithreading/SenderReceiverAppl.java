@@ -1,5 +1,6 @@
 package telran.multithreading;
 
+import java.util.Arrays;
 import java.util.stream.IntStream;
 
 import telran.multithreading.consumer.Receiver;
@@ -14,12 +15,31 @@ public class SenderReceiverAppl {
 		Receiver receivers[] = new Receiver[N_RECEIVERS];
 		MessageBox messageBox = new MessageBox();
 		startReceivers(receivers, messageBox);
-		
 		Sender sender = new Sender(messageBox, N_MESSAGES);
 		sender.start();
 		sender.join();
-		Thread.sleep(100); //FIXME remove this statement
+		stopReceivers(receivers);
+		waitReceivers(receivers);
+		System.out.println("number of the processed messages is " + Receiver.getMessagesCounter());
 
+	}
+
+	private static void waitReceivers(Receiver[] receivers) {
+		Arrays.stream(receivers).forEach(r -> {
+			try {
+				r.join();
+			} catch (InterruptedException e) {
+				
+			}
+		});
+	}
+
+	private static void stopReceivers(Receiver[] receivers) {
+		Arrays.stream(receivers).forEach(r -> {
+			r.setRunning(false);
+			r.interrupt();
+		});
+		
 	}
 
 	private static void startReceivers(Receiver[] receivers, MessageBox messageBox) {
