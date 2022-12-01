@@ -14,13 +14,17 @@ public class Receiver extends Thread {
 	}
 	@Override
 	public void run() {
+		String message = null;
 		while(running ) {
 			try {
-				String message = messageBox.get();
+				message = messageBox.get();
 				messageProcessing(message);
 			} catch (InterruptedException e) {
 				
 			}
+		}
+		while((message = messageBox.take()) != null) {
+			messageProcessing(message);
 		}
 	}
 	private void messageProcessing(String message) {
