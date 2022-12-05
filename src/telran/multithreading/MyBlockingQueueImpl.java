@@ -3,165 +3,335 @@ package telran.multithreading;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class MyBlockingQueueImpl<E> implements BlockingQueue<E> {
 	private List<E> queue = new LinkedList<>();
 	private int capacity;
+	private Lock monitor = new ReentrantLock();
+	private Condition consumerWaitingCondition = monitor.newCondition();
+	private Condition producerWaitingCondition = monitor.newCondition();
+
 //TODO additional fields consider Lock, Condition 
 	public MyBlockingQueueImpl(int capacity) {
 		this.capacity = capacity;
 	}
+
 	public MyBlockingQueueImpl() {
 		this(Integer.MAX_VALUE);
 	}
+
 	@Override
 	public E remove() {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			monitor.lock();
+			if (queue.size() == 0) {
+				throw new NoSuchElementException();
+			}
+			E result = queue.remove(0);
+			producerWaitingCondition.signal();
+			return result;
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public E poll() {
-		// TODO Auto-generated method stub
-		return null;
+		E result = null;
+		try {
+			monitor.lock();
+			if (queue.size() != 0) {
+				result = queue.remove(0);
+				producerWaitingCondition.signal();
+			}
+
+			return result;
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public E element() {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			monitor.lock();
+			if (queue.size() == 0) {
+				throw new NoSuchElementException();
+			}
+			return queue.get(0);
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public E peek() {
-		// TODO Auto-generated method stub
-		return null;
+		E result = null;
+		try {
+			monitor.lock();
+			if (queue.size() != 0) {
+				result = queue.get(0);
+				producerWaitingCondition.signal();
+			}
+
+			return result;
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public int size() {
-		// TODO Auto-generated method stub
-		return 0;
+		try {
+			monitor.lock();
+
+			return queue.size();
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public boolean isEmpty() {
-		// TODO Auto-generated method stub
-		return false;
+		try {
+			monitor.lock();
+			return queue.isEmpty();
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public Iterator<E> iterator() {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			monitor.lock();
+			return queue.iterator();
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public Object[] toArray() {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			monitor.lock();
+			return queue.toArray();
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public <T> T[] toArray(T[] a) {
-		// TODO Auto-generated method stub
-		
-		return null;
+		try {
+			monitor.lock();
+			return queue.toArray(a);
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public boolean containsAll(Collection<?> c) {
-		//TODO
-		return false;
+		try {
+			monitor.lock();
+			return queue.containsAll(c);
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public boolean addAll(Collection<? extends E> c) {
-		// TODO Auto-generated method stub
-		return false;
+		int size = size();
+		c.forEach(this::add);
+		return size != size();
 	}
 
 	@Override
 	public boolean removeAll(Collection<?> c) {
-		// TODO Auto-generated method stub
-		return false;
+
+		try {
+			monitor.lock();
+			boolean res = queue.removeAll(c);
+			if (res) {
+				producerWaitingCondition.signal();
+			}
+			return res;
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public boolean retainAll(Collection<?> c) {
-		// TODO Auto-generated method stub
-		return false;
+		try {
+			monitor.lock();
+			boolean res = queue.retainAll(c);
+			if (res) {
+				producerWaitingCondition.signal();
+			}
+			return res;
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public void clear() {
-		// TODO Auto-generated method stub
+		try {
+			monitor.lock();
+			queue.clear();
+			producerWaitingCondition.signal();
+		} finally {
+			monitor.unlock();
+		}
 
 	}
 
 	@Override
 	public boolean add(E e) {
-		// TODO Auto-generated method stub
-		return false;
+		try {
+			monitor.lock();
+			if (queue.size() == capacity) {
+				throw new IllegalStateException();
+			}
+			boolean res = queue.add(e);
+			consumerWaitingCondition.signal();
+			return res;
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public boolean offer(E e) {
-		// TODO Auto-generated method stub
-		return false;
+		boolean res = true;
+		try {
+			monitor.lock();
+			if (queue.size() == capacity) {
+				res = false;
+			} else {
+				queue.add(e);
+				consumerWaitingCondition.signal();
+			}
+
+			return res;
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public void put(E e) throws InterruptedException {
-		// TODO Auto-generated method stub
+		try {
+			monitor.lock();
+			while (queue.size() == capacity) {
+				producerWaitingCondition.await();
+			}
+			queue.add(e);
+			consumerWaitingCondition.signal();
+
+		} finally {
+			monitor.unlock();
+		}
+
 
 	}
 
 	@Override
 	public boolean offer(E e, long timeout, TimeUnit unit) throws InterruptedException {
-		// TODO Auto-generated method stub
-		return false;
+		try {
+			monitor.lock();
+			while (queue.size() == capacity) {
+				if (!producerWaitingCondition.await(timeout, unit)) {
+					return false;
+				}
+			}
+			queue.add(e);
+			consumerWaitingCondition.signal();
+			return true;
+
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public E take() throws InterruptedException {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			monitor.lock();
+			while (queue.isEmpty()) {
+				consumerWaitingCondition.await();
+			}
+			E res = queue.remove(0);
+			producerWaitingCondition.signal();
+			return res;
+
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public E poll(long timeout, TimeUnit unit) throws InterruptedException {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			monitor.lock();
+			while (queue.isEmpty()) {
+				if (!consumerWaitingCondition.await(timeout, unit)) {
+					return null;
+				}
+			}
+			E res = queue.remove(0);
+			if (res != null) {
+				producerWaitingCondition.signal();
+			}
+			
+			return res;
+
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public int remainingCapacity() {
-		// TODO Auto-generated method stub
-		return 0;
+		try {
+			monitor.lock();
+			return capacity - queue.size();
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public boolean remove(Object o) {
-		//No implement
+		// No implement
 		return false;
 	}
 
 	@Override
 	public boolean contains(Object o) {
-		// TODO Auto-generated method stub
-		return false;
+		try {
+			monitor.lock();
+			return queue.contains(o);
+		} finally {
+			monitor.unlock();
+		}
 	}
 
 	@Override
 	public int drainTo(Collection<? super E> c) {
-		//No implement
+		// No implement
 		return 0;
 	}
 
 	@Override
 	public int drainTo(Collection<? super E> c, int maxElements) {
-		//No implement
+		// No implement
 		return 0;
 	}
 }

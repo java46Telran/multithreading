@@ -10,12 +10,12 @@ public class GarageImitatorAppl {
 static final long MODEL_TIME = 10000; 
 static final long MIN_SERVICE_TIME = 60;
 static final long MAX_SERVICE_TIME = 600;
-static final int N_WORKERS = 30;
+static final int N_WORKERS = 5;
 static final int PROB_CAR_MIN = 10;
 private static final int  CAPCITY = 15;
 static int rejectsCounter = 0;
 static int carsCounter = 0;
-static BlockingQueue<Car> cars = new LinkedBlockingQueue<>(CAPCITY); //FIXME replace with MyBlockingQueueImpl
+static BlockingQueue<Car> cars = new MyBlockingQueueImpl<>(CAPCITY); //FIXME replace with MyBlockingQueueImpl
 	public static void main(String[] args) throws InterruptedException {
 		
 		Worker workers[] = new Worker[N_WORKERS];
