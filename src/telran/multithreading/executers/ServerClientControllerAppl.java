@@ -1,5 +1,6 @@
 package telran.multithreading.executers;
 
+import java.util.List;
 import java.util.concurrent.*;
 
 public class ServerClientControllerAppl {
@@ -14,8 +15,12 @@ public class ServerClientControllerAppl {
 		server.start();
 		client.join();
 		server.interrupt();
-		server.join();
+		
+		server.executor.awaitTermination(10, TimeUnit.SECONDS);
+		List<Runnable> unprocessedRequests = server.executor.shutdownNow();
+		
 		System.out.println("counter of the processed requests is " + Request.getRequestCounter());
+		System.out.println("counter of the unprocessed requests is " + unprocessedRequests.size());
 				
 
 	}
