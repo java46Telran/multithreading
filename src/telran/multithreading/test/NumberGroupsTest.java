@@ -26,7 +26,7 @@ int [][] groupsPerformance = getGroups(N_GROUPS, N_NUMBERS_IN_GROUP);
 	@Test
 	void performanceTest () {
 		NumberGroups numberGroups = new NumberGroups(groupsPerformance);
-		numberGroups.setnThreads(4);
+		numberGroups.setnThreads(15000);
 		numberGroups.computeSum();
 	}
 	int[][] getGroups(int nGroups, int nNumbersInGroup) {

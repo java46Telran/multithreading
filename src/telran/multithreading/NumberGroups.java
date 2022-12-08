@@ -2,8 +2,10 @@ package telran.multithreading;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class NumberGroups {
@@ -19,24 +21,18 @@ public class NumberGroups {
 	}
 	public long computeSum() {
 		ExecutorService executor = Executors.newFixedThreadPool(nThreads);
-		List<OneGroupSum> groupSums = Arrays.stream(groups)
-				.map(group -> new OneGroupSum(group)).toList();
-		startGroups(groupSums, executor);
-		waitingGroups(executor);
-		return groupSums.stream().mapToLong(OneGroupSum::getRes).sum();
+		List<Future<Long>> groupSums =
+				Arrays.stream(groups).map(OneGroupSum::new)
+				.map(executor::submit).toList();
+		return groupSums.stream().mapToLong(value -> {
+			try {
+				return value.get();
+			} catch (InterruptedException | ExecutionException e) {
+				throw new IllegalStateException();
+			}
+		}).sum();
 	}
-	private void startGroups(List<OneGroupSum> groupSums, ExecutorService executor) {
-		groupSums.forEach(executor::execute);
-		
-	}
-	private void waitingGroups(ExecutorService executor){
-		executor.shutdown();
-		try {
-			executor.awaitTermination(10, TimeUnit.HOURS);
-		} catch (InterruptedException e) {
-			
-		}
-	}
+	
 	
 	
 }
